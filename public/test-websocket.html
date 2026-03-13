@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Connection Test</title>
+    <script src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        input, button { padding: 10px; margin: 5px; }
+        button { cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 WebSocket Connection Test</h1>
+        <p>Backend is HTTPS: <code>https://localhost:3000</code></p>
+
+        <div>
+            <input type="text" id="token" placeholder="JWT Token" style="width: 400px;">
+            <button onclick="testConnection()">Test Connection</button>
+        </div>
+
+        <div id="status" class="status info">Paste token and click Test Connection</div>
+        <div id="logs"></div>
+    </div>
+
+    <script>
+        function addLog(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            logs.appendChild(div);
+        }
+
+        function parseJwt(token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                return payload;
+            } catch {
+                return null;
+            }
+        }
+
+        function testConnection() {
+            const token = document.getElementById('token').value.trim();
+            const status = document.getElementById('status');
+
+            if (!token) {
+                status.className = 'status error';
+                status.textContent = 'Please enter a JWT token';
+                return;
+            }
+
+            const payload = parseJwt(token);
+            if (!payload?.sub) {
+                status.className = 'status error';
+                status.textContent = 'Token is not a JWT with sub';
+                addLog('Expected backend JWT (with sub). If you are using NextAuth, copy session.accessToken from /api/auth/session.', 'error');
+                return;
+            }
+
+            status.className = 'status info';
+            status.textContent = 'Testing connection...';
+
+            addLog('Attempting to connect to wss://localhost:3000 (SSL)', 'info');
+
+            const socket = io('https://localhost:3000', {
+                auth: { token },
+                transports: ['websocket'],
+                reconnection: false,
+                rejectUnauthorized: false,
+            });
+
+            socket.on('connect', () => {
+                status.className = 'status success';
+                status.textContent = '✅ Connected successfully!';
+                addLog(`Connected. socket.id=${socket.id}`, 'success');
+
+                const userId = Number(payload.sub);
+                socket.emit('register', { userId }, (response) => {
+                    addLog(`register ack: ${JSON.stringify(response)}`, response?.success ? 'success' : 'error');
+                });
+
+                socket.emit('joinRoom', { chatRoomId: 1 }, (response) => {
+                    addLog(`joinRoom ack: ${JSON.stringify(response)}`, response?.success ? 'success' : 'error');
+                });
+
+                setTimeout(() => socket.disconnect(), 3000);
+            });
+
+            socket.on('connect_error', (error) => {
+                status.className = 'status error';
+                status.textContent = '❌ Connection failed';
+                addLog(`connect_error: ${error.message}`, 'error');
+            });
+        }
+    </script>
+</body>
+</html>
