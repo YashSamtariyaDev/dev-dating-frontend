@@ -17,8 +17,11 @@ import {
     Github,
     Linkedin,
     Globe,
-    Check
+    Check,
+    Cake,
+    Heart
 } from 'lucide-react';
+
 import { Card, CardContent } from '@/components/ui/card';
 import Image from 'next/image';
 import { useToast } from '@/components/ui/use-toast';
@@ -42,9 +45,11 @@ export function EditProfilePage() {
         githubUsername: '',
         linkedinUrl: '',
         portfolioUrl: '',
-        age: 0,
+        age: 18,
+        lookingFor: '',
         isAvailable: false,
     });
+
 
     useEffect(() => {
         if (profile) {
@@ -57,25 +62,40 @@ export function EditProfilePage() {
                 githubUsername: profile.githubUsername || '',
                 linkedinUrl: profile.linkedinUrl || '',
                 portfolioUrl: profile.portfolioUrl || '',
-                age: profile.age || 0,
+                age: profile.age || 18,
+                lookingFor: profile.lookingFor || '',
                 isAvailable: profile.isAvailable || false,
             });
+
         }
     }, [profile]);
 
     const handleSave = async () => {
         try {
-            await updateProfile.mutateAsync(formData as any);
+            // Clean empty strings for optional URL fields
+            const submissionData = { ...formData };
+            if (!submissionData.githubUsername) delete (submissionData as any).githubUsername;
+            if (!submissionData.linkedinUrl) delete (submissionData as any).linkedinUrl;
+            if (!submissionData.portfolioUrl) delete (submissionData as any).portfolioUrl;
+            if (!submissionData.location) delete (submissionData as any).location;
+
+            await updateProfile.mutateAsync(submissionData as any);
             await queryClient.invalidateQueries({ queryKey: ['profile'] });
             toast({
                 title: "Profile Updated",
                 description: "Your profile details have been saved successfully.",
             });
             router.push('/profile');
-        } catch (error) {
+        } catch (error: any) {
+            console.error('❌ Update failed:', error.response?.data);
+            const errorMessage = error.response?.data?.message;
+            const displayError = Array.isArray(errorMessage) 
+                ? errorMessage.join(', ') 
+                : errorMessage || "Failed to update profile. Please try again.";
+
             toast({
                 title: "Error",
-                description: "Failed to update profile. Please try again.",
+                description: displayError,
                 variant: "destructive",
             });
         }
@@ -123,6 +143,13 @@ export function EditProfilePage() {
         { value: 'female', label: 'Female' },
         { value: 'other', label: 'Other' }
     ];
+
+    const lookingForOptions = [
+        { value: 'male', label: 'Men' },
+        { value: 'female', label: 'Women' },
+        { value: 'both', label: 'Both' }
+    ];
+
 
     return (
         <MobileShell
@@ -245,9 +272,45 @@ export function EditProfilePage() {
                                     ))}
                                 </select>
                             </div>
+
+                            {/* Age */}
+                            <div className="p-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Cake className="size-5 text-muted-foreground" />
+                                    <span className="text-sm font-semibold">Age</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    min="18"
+                                    max="100"
+                                    className="bg-transparent text-sm font-medium text-brand outline-none text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none w-20"
+                                    placeholder="18+"
+                                    value={formData.age === 0 ? '' : formData.age}
+                                    onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) || 0 })}
+                                />
+                            </div>
+
+                            {/* Looking For */}
+                            <div className="p-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Heart className="size-5 text-muted-foreground" />
+                                    <span className="text-sm font-semibold">Looking For</span>
+                                </div>
+                                <select
+                                    className="bg-transparent text-sm font-medium text-brand outline-none text-right appearance-none"
+                                    value={formData.lookingFor}
+                                    onChange={(e) => setFormData({ ...formData, lookingFor: e.target.value })}
+                                >
+                                    <option value="">Select</option>
+                                    {lookingForOptions.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
+
 
                 {/* Tech Stack */}
                 <div className="space-y-4">

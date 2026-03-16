@@ -6,13 +6,14 @@ import { API_ENDPOINTS } from './api';
 const https = require('https');
 
 function getBackendBaseUrl() {
-  const raw = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:3000';
+  // Use BACKEND_URL_1 (internal Docker name) if available, otherwise fallback to public API URL
+  const raw = process.env.BACKEND_URL_1 || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
   try {
     const url = new URL(raw);
     return url.origin.replace(/\/$/, '');
   } catch {
-    return 'https://localhost:3000';
+    return raw.replace(/\/$/, '');
   }
 }
 

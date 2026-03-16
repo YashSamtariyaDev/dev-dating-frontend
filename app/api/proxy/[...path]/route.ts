@@ -17,18 +17,20 @@ interface ProxyConfig {
   monitoring: boolean;
 }
 
-const backendsList = [
-  process.env.BACKEND_URL_1,
-  process.env.BACKEND_URL_2,
-  process.env.BACKEND_URL_3,
-  process.env.NEXT_PUBLIC_API_URL
-].filter((url): url is string => !!url && (url.startsWith('http://') || url.startsWith('https://')));
+const getUniqueBackends = () => {
+  const backendsList = [
+    process.env.BACKEND_URL_1,
+    process.env.BACKEND_URL_2,
+    process.env.BACKEND_URL_3,
+  ].filter((url): url is string => !!url && (url.startsWith('http://') || url.startsWith('https://')));
 
-// Deduplicate the list
-const uniqueBackends = Array.from(new Set(backendsList));
+  // Deduplicate and return
+  const unique = Array.from(new Set(backendsList));
+  return unique.length > 0 ? unique : ['http://localhost:3000'];
+};
 
 const PROXY_CONFIG: ProxyConfig = {
-  backends: uniqueBackends.length > 0 ? uniqueBackends : ['http://localhost:3000'],
+  backends: [], // Will be populated at runtime
   loadBalancing: 'round-robin',
   rateLimiting: {
     requests: 100,
@@ -259,7 +261,7 @@ async function handleProxyRequest(
 
 // 🔄 Load Balancing Algorithms
 function getBackendUrl(pathSegments: string[]): string {
-  const backends = PROXY_CONFIG.backends;
+  const backends = getUniqueBackends();
 
   switch (PROXY_CONFIG.loadBalancing) {
     case 'round-robin':
