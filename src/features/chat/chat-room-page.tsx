@@ -55,10 +55,8 @@ export function ChatRoomPage({ chatRoomId }: { chatRoomId: string }) {
     const token = accessToken;
     if (!token || !chatRoomId) return;
 
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL || 
-                      (process.env.NODE_ENV === 'production' ? window.location.origin : 'https://localhost:3000');
-
-    const newSocket = io(socketUrl, {
+    // Use the current origin to ensure the connection goes through the Nginx proxy
+    const newSocket = io({
       auth: { token },
       transports: ['websocket'],
       reconnection: true,

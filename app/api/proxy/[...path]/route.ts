@@ -37,7 +37,7 @@ const PROXY_CONFIG: ProxyConfig = {
     windowMs: 60000 // 1 minute
   },
   caching: {
-    enabled: process.env.NODE_ENV === 'production',
+    enabled: false, // Disabled to prevent stale data during development
     ttl: 300 // 5 minutes
   },
   monitoring: true
