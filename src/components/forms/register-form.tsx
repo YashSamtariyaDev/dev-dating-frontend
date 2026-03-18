@@ -19,6 +19,7 @@ export function RegisterForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [showOTP, setShowOTP] = useState(false);
   const [registrationData, setRegistrationData] = useState<RegisterFormData | null>(null);
 
@@ -29,6 +30,8 @@ export function RegisterForm() {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
+
+  const isVerificationEnabled = process.env.NEXT_PUBLIC_ENABLE_EMAIL_VERIFICATION !== 'false';
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsSubmitting(true);
@@ -43,10 +46,28 @@ export function RegisterForm() {
       });
 
       if (response.data.success) {
+        if (response.data.requiresVerification === false) {
+          // Direct Registration Success - Auto Login
+          setSuccess('Account created! Logging you in...');
+          
+          const result = await signIn('credentials', {
+            email: data.email,
+            password: data.password,
+            redirect: false,
+          });
+
+          if (result?.ok) {
+            router.push('/dashboard');
+          } else {
+            router.push('/auth/login?message=Account created successfully! Please login.');
+          }
+          return;
+        }
+
         setRegistrationData(data);
         setShowOTP(true);
       } else {
-        setError(response.data.message || 'Failed to send OTP');
+        setError(response.data.message || 'Failed to initiate registration');
       }
     } catch (e: any) {
       setError(e?.response?.data?.message || 'Registration initiation failed');
@@ -133,6 +154,12 @@ export function RegisterForm() {
             )}
           </div>
 
+          {success && (
+            <div className="text-sm text-green-600 bg-green-50 p-3 rounded-md">
+              {success}
+            </div>
+          )}
+
           {error && (
             <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
               {error}
@@ -141,9 +168,9 @@ export function RegisterForm() {
 
           <Button type="submit" variant="brand" size="lg" className="w-full h-11 text-base" disabled={isSubmitting}>
             {isSubmitting ? (
-              <LoadingSpinner size="sm" text="Sending OTP..." />
+              <LoadingSpinner size="sm" text={isVerificationEnabled ? "Sending OTP..." : "Registering..."} />
             ) : (
-              '📧 Send OTP & Register'
+              isVerificationEnabled ? '📧 Send OTP & Register' : '🚀 Create Account'
             )}
           </Button>
 
@@ -159,15 +186,17 @@ export function RegisterForm() {
             </button>
           </div>
 
-          <div className="text-xs text-muted-foreground text-center border-t pt-3">
-            <p className="flex items-center justify-center gap-2">
-              <span className="text-green-600">✅</span>
-              Email verification required for security
-            </p>
-            <p className="mt-1">
-              We'll send a 6-digit OTP to verify your email
-            </p>
-          </div>
+          {isVerificationEnabled && (
+            <div className="text-xs text-muted-foreground text-center border-t pt-3">
+              <p className="flex items-center justify-center gap-2">
+                <span className="text-green-600">✅</span>
+                Email verification required for security
+              </p>
+              <p className="mt-1">
+                We'll send a 6-digit OTP to verify your email
+              </p>
+            </div>
+          )}
         </form>
       </CardContent>
     </Card>
