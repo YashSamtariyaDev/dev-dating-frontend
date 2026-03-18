@@ -55,12 +55,15 @@ export function ChatRoomPage({ chatRoomId }: { chatRoomId: string }) {
     const token = accessToken;
     if (!token || !chatRoomId) return;
 
-    // Use the current origin to ensure the connection goes through the Nginx proxy
-    const newSocket = io({
+    // Use env var to directly connect to Railway backend.
+    // Cloudflare Workers (where the frontend is deployed) does NOT support
+    // acting as a WebSocket server, so we must bypass it and connect to
+    // the backend URL directly. Set NEXT_PUBLIC_SOCKET_URL in production.
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000';
+    const newSocket = io(socketUrl, {
       auth: { token },
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       reconnection: true,
-      rejectUnauthorized: false, // Ignore SSL certificate errors for development
     });
 
     socketRef.current = newSocket;
