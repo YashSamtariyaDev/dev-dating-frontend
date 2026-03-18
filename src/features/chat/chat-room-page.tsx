@@ -55,11 +55,23 @@ export function ChatRoomPage({ chatRoomId }: { chatRoomId: string }) {
     const token = accessToken;
     if (!token || !chatRoomId) return;
 
-    // Use env var to directly connect to Railway backend.
-    // Cloudflare Workers (where the frontend is deployed) does NOT support
-    // acting as a WebSocket server, so we must bypass it and connect to
-    // the backend URL directly. Set NEXT_PUBLIC_SOCKET_URL in production.
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000';
+    // Determine socket URL at RUNTIME (not build-time).
+    // NEXT_PUBLIC_ variables are baked in at build time, which doesn't work
+    // when Cloudflare Workers sets them as runtime secrets. So we use the 
+    // window.location.hostname to detect production vs local.
+    const getSocketUrl = () => {
+      const hostname = window.location.hostname;
+      // If running on Cloudflare Workers production domain, connect to Railway backend directly
+      if (hostname.includes('workers.dev') || hostname.includes('cloudflare.dev')) {
+        return 'https://dev-dating-backend-production-9a96.up.railway.app';
+      }
+      // Local / Docker / staging — connect to backend directly
+      return process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000';
+    };
+
+    const socketUrl = getSocketUrl();
+    console.log(`🔌 Connecting socket to: ${socketUrl}`);
+
     const newSocket = io(socketUrl, {
       auth: { token },
       transports: ['websocket', 'polling'],
