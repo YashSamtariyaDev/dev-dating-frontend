@@ -172,7 +172,7 @@ export function EditProfilePage() {
                         <div className="h-full w-full overflow-hidden rounded-2xl border-2 border-muted bg-muted shadow-sm">
                             {profile?.photoUrl ? (
                                 <Image
-                                    src={profile.photoUrl.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_URL || 'http://192.168.29.79:3000'}${profile.photoUrl}` : profile.photoUrl}
+                                    src={profile.photoUrl.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_URL || ''}${profile.photoUrl}` : profile.photoUrl}
                                     alt="Profile"
                                     fill
                                     className="object-cover"

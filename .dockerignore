@@ -1,0 +1,15 @@
+# Ignore local env files - environment variables are injected at runtime
+# via docker-compose env_file: ./env/${ENV}/frontend.env
+.env
+.env.*
+!.env.example
+
+# Ignore node_modules - will be installed fresh in Docker
+node_modules
+
+# Ignore Next.js build output and cache
+.next
+
+# Ignore git
+.git
+.gitignore

@@ -22,7 +22,7 @@ export function ProfilePage() {
   const photoUrl = useMemo(() => {
     if (!profile?.photoUrl) return null;
     if (profile.photoUrl.startsWith('/uploads')) {
-        const backendBase = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.29.79:3000';
+        const backendBase = process.env.NEXT_PUBLIC_API_URL || '';
         return `${backendBase}${profile.photoUrl}`;
     }
     return profile.photoUrl;
