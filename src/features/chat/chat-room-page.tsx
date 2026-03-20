@@ -26,13 +26,13 @@ export function ChatRoomPage({ chatRoomId }: { chatRoomId: string }) {
   const { data, isLoading, isError, refetch } = useChatMessages(chatRoomId);
   const send = useSendMessage();
   const { data: session } = useSession();
-  
+
   const [text, setText] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  
+
   const listRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const myUserIdRef = useRef<number | null>(null);
@@ -66,7 +66,8 @@ export function ChatRoomPage({ chatRoomId }: { chatRoomId: string }) {
         return 'https://dev-dating-backend-production-9a96.up.railway.app';
       }
       // Local / Docker / staging — connect to backend directly
-      return process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000';
+      // Return the hardcoded AWS public IP instead of localhost/origin
+      return 'https://devdating.bytelong.com/';
     };
 
     const socketUrl = getSocketUrl();
@@ -96,7 +97,7 @@ export function ChatRoomPage({ chatRoomId }: { chatRoomId: string }) {
     newSocket.on('connect', () => {
       console.log('Connected to chat server');
       setIsConnected(true);
-      
+
       // Register user and join room
       if (userIdFromToken) {
         newSocket.emit('register', { userId: userIdFromToken });
@@ -116,7 +117,7 @@ export function ChatRoomPage({ chatRoomId }: { chatRoomId: string }) {
         // Avoid duplicate messages
         const exists = prev.some(m => m.id === data.id);
         if (exists) return prev;
-        
+
         const newMsg: ChatMessage = {
           id: data.id,
           senderId: data.senderId,
@@ -151,9 +152,9 @@ export function ChatRoomPage({ chatRoomId }: { chatRoomId: string }) {
   // Auto-scroll when messages update
   useEffect(() => {
     requestAnimationFrame(() => {
-      listRef.current?.scrollTo({ 
-        top: listRef.current.scrollHeight, 
-        behavior: 'smooth' 
+      listRef.current?.scrollTo({
+        top: listRef.current.scrollHeight,
+        behavior: 'smooth'
       });
     });
   }, [messages.length]);
@@ -163,7 +164,7 @@ export function ChatRoomPage({ chatRoomId }: { chatRoomId: string }) {
     if (!content || !socket || !isConnected) return;
 
     setText('');
-    
+
     // Send via WebSocket for real-time delivery
     socket.emit('sendMessage', {
       chatRoomId: Number(chatRoomId),
@@ -175,9 +176,9 @@ export function ChatRoomPage({ chatRoomId }: { chatRoomId: string }) {
   }, [text, socket, isConnected, chatRoomId]);
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return new Date(dateString).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -227,15 +228,14 @@ export function ChatRoomPage({ chatRoomId }: { chatRoomId: string }) {
             const isOwn = message.senderId === currentUserId;
             const senderName = isOwn ? 'You' : (message.sender?.name || message.senderName || 'Unknown');
             return (
-              <div 
-                key={message.id} 
+              <div
+                key={message.id}
                 className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`max-w-[82%] rounded-3xl px-4 py-2 text-sm shadow-sm ${
-                  isOwn 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-card/85 border'
-                }`}>
+                <div className={`max-w-[82%] rounded-3xl px-4 py-2 text-sm shadow-sm ${isOwn
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-card/85 border'
+                  }`}>
                   {!isOwn && (
                     <div className="text-xs font-medium mb-1 opacity-70">
                       {senderName}
